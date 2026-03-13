@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, LogOut, Sun, Moon } from 'lucide-react';
 import useNavStore from '@/store/useNavStore';
 import useDarkMode from '@/hooks/useDarkMode';
+import useAuthStore from '@/store/useAuthStore';
 import { MAIN_NAV_ITEMS, HAMBURGER_EXTRA_ITEMS } from '@/utils/navigationConfig';
 
 // Framer Motion 애니메이션 변수
@@ -38,9 +39,11 @@ const itemVariants = {
 };
 
 export default function HamburgerMenu() {
+  const router = useRouter();
   const pathname = usePathname();
   const { isMenuOpen, closeMenu, setCurrentPage } = useNavStore();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { logout } = useAuthStore();
 
   const isActive = (href) => pathname === href;
 
@@ -205,9 +208,10 @@ export default function HamburgerMenu() {
 
               {/* 로그아웃 */}
               <button
-                onClick={() => {
+                onClick={async () => {
                   closeMenu();
-                  console.log('logout');
+                  await logout();
+                  router.replace('/login');
                 }}
                 className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full transition-colors hover:opacity-70"
                 style={{ color: 'var(--gw-danger)' }}

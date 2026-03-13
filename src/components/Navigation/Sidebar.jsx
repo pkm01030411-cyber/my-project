@@ -1,14 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Globe, LogOut } from 'lucide-react';
 import useNavStore from '@/store/useNavStore';
+import useAuthStore from '@/store/useAuthStore';
 import { MAIN_NAV_ITEMS, HAMBURGER_EXTRA_ITEMS, LOGOUT_ITEM } from '@/utils/navigationConfig';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { setCurrentPage } = useNavStore();
+  const { logout } = useAuthStore();
 
   const isActive = (href) => pathname === href || pathname.startsWith(href + '/');
 
@@ -125,7 +128,7 @@ export default function Sidebar() {
         style={{ borderColor: 'var(--gw-border)' }}
       >
         <button
-          onClick={() => console.log('logout')}
+          onClick={async () => { await logout(); router.replace('/login'); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full transition-colors hover:opacity-70"
           style={{ color: 'var(--gw-danger)' }}
         >
