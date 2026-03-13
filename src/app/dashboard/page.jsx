@@ -1,133 +1,146 @@
+'use client';
+
+import { useMemo } from 'react';
 import MainLayout from '@/components/Layout/MainLayout';
+import useAuthStore from '@/store/useAuthStore';
+import RiskIndicator from '@/components/Dashboard/RiskIndicator';
+import OpportunityIndicator from '@/components/Dashboard/OpportunityIndicator';
+import RelevanceIndicator from '@/components/Dashboard/RelevanceIndicator';
+import TrendIndicator from '@/components/Dashboard/TrendIndicator';
+import RegionChart from '@/components/Dashboard/RegionChart';
+import IndustryChart from '@/components/Dashboard/IndustryChart';
+import RiskTrendChart from '@/components/Dashboard/RiskTrendChart';
+import NewsCard from '@/components/Dashboard/NewsCard';
+import {
+  mockScores,
+  regionDataByTier,
+  industryDataByTier,
+  riskTrendData,
+  recentNews,
+  summaryStats,
+  normalizeTier,
+} from '@/data/mockData';
 
-export const metadata = {
-  title: '대시보드 | GlobalWatch',
-};
-
-export default function DashboardPage() {
+// ─── 요약 통계 카드 ──────────────────────────────────────────
+function SummaryStatCard({ label, value, change, positive }) {
   return (
-    <MainLayout>
-      <div>
-        {/* 페이지 헤더 */}
-        <div className="mb-6">
+    <div
+      className="p-4 rounded-xl border transition-all hover:shadow-md"
+      style={{ backgroundColor: 'var(--gw-surface)', borderColor: 'var(--gw-border)' }}
+    >
+      <p className="text-xs mb-1" style={{ color: 'var(--gw-text-secondary)' }}>
+        {label}
+      </p>
+      <p className="text-2xl font-bold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
+        {value.toLocaleString()}
+      </p>
+      <p
+        className="text-xs font-medium"
+        style={{ color: positive ? '#10b981' : '#dc2626' }}
+      >
+        {change} 이번 주
+      </p>
+    </div>
+  );
+}
+
+// ─── 페이지 헤더 ─────────────────────────────────────────────
+function DashboardHeader({ user, tier, stats }) {
+  const today = new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
+  });
+
+  const tierLabel = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' }[tier];
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
           <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
             대시보드
           </h1>
           <p className="text-sm" style={{ color: 'var(--gw-text-secondary)' }}>
-            글로벌 무역 시장 현황을 한눈에 확인하세요
+            {today} · 글로벌 무역 시장 현황
           </p>
         </div>
-
-        {/* 통계 카드 그리드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: '모니터링 국가', value: '48', change: '+2', positive: true },
-            { label: '오늘의 뉴스', value: '127', change: '+23', positive: true },
-            { label: '리스크 경보', value: '5', change: '+1', positive: false },
-            { label: '정책 업데이트', value: '12', change: '+4', positive: true },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="p-4 rounded-xl border transition-theme"
-              style={{
-                backgroundColor: 'var(--gw-surface)',
-                borderColor: 'var(--gw-border)',
-              }}
-            >
-              <p className="text-xs mb-1" style={{ color: 'var(--gw-text-secondary)' }}>
-                {stat.label}
-              </p>
-              <p className="text-2xl font-bold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
-                {stat.value}
-              </p>
-              <p
-                className="text-xs font-medium"
-                style={{ color: stat.positive ? 'var(--gw-secondary)' : 'var(--gw-danger)' }}
-              >
-                {stat.change} 이번 주
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* 주요 뉴스 미리보기 */}
         <div
-          className="p-5 rounded-xl border transition-theme"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold"
           style={{
-            backgroundColor: 'var(--gw-surface)',
-            borderColor: 'var(--gw-border)',
+            borderColor: 'var(--gw-primary)',
+            backgroundColor: 'var(--gw-sidebar-active)',
+            color: 'var(--gw-primary)',
           }}
         >
-          <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--gw-text-primary)' }}>
-            오늘의 주요 이슈
-          </h2>
-          <div className="space-y-3">
-            {[
-              {
-                country: '🇺🇸 미국',
-                title: '미-중 관세 협상 재개 예정, 무역 불균형 논의 핵심',
-                tier: 'Tier 1',
-                time: '2시간 전',
-                risk: 'high',
-              },
-              {
-                country: '🇪🇺 EU',
-                title: 'EU 탄소국경조정제도(CBAM) 시행 현황 및 영향',
-                tier: 'Tier 1',
-                time: '4시간 전',
-                risk: 'medium',
-              },
-              {
-                country: '🇻🇳 베트남',
-                title: '베트남 제조업 투자 유치 확대로 수출 다변화 가속',
-                tier: 'Tier 2',
-                time: '6시간 전',
-                risk: 'low',
-              },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 p-3 rounded-lg border transition-theme"
-                style={{ borderColor: 'var(--gw-border)' }}
-              >
-                <div
-                  className="w-2 h-2 mt-1.5 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor:
-                      item.risk === 'high'
-                        ? 'var(--gw-danger)'
-                        : item.risk === 'medium'
-                          ? 'var(--gw-accent)'
-                          : 'var(--gw-secondary)',
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium" style={{ color: 'var(--gw-text-secondary)' }}>
-                      {item.country}
-                    </span>
-                    <span
-                      className="text-xs px-1.5 py-0.5 rounded font-medium"
-                      style={{
-                        backgroundColor: 'var(--gw-sidebar-active)',
-                        color: 'var(--gw-primary)',
-                      }}
-                    >
-                      {item.tier}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--gw-text-primary)' }}>
-                    {item.title}
-                  </p>
-                </div>
-                <span className="text-xs flex-shrink-0" style={{ color: 'var(--gw-text-secondary)' }}>
-                  {item.time}
-                </span>
-              </div>
-            ))}
-          </div>
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+          {tierLabel} 모니터링 중
         </div>
       </div>
+
+      {/* 요약 통계 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+        <SummaryStatCard label="모니터링 국가" value={stats.monitoringCountries} change={'+2'} positive={true} />
+        <SummaryStatCard label="오늘의 뉴스" value={stats.todayNews} change={'+23'} positive={true} />
+        <SummaryStatCard label="리스크 경보" value={stats.riskAlerts} change={'+1'} positive={false} />
+        <SummaryStatCard label="정책 업데이트" value={stats.policyUpdates} change={'+4'} positive={true} />
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인 페이지 ─────────────────────────────────────────────
+export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const tier = normalizeTier(user?.user_metadata?.tier_level);
+
+  const regionData = useMemo(() => regionDataByTier[tier] ?? regionDataByTier.tier1, [tier]);
+  const industryData = useMemo(() => industryDataByTier[tier] ?? industryDataByTier.tier1, [tier]);
+  const stats = summaryStats[tier] ?? summaryStats.tier1;
+
+  // Tier에 따라 뉴스 필터링
+  const filteredNews = useMemo(() => {
+    if (tier === 'tier3') return recentNews;
+    if (tier === 'tier2') return recentNews.filter((n) => n.tier !== 'tier3');
+    return recentNews.filter((n) => n.tier === 'tier1');
+  }, [tier]);
+
+  return (
+    <MainLayout>
+      {/* 페이지 헤더 + 요약 통계 */}
+      <DashboardHeader user={user} tier={tier} stats={stats} />
+
+      {/* ── 섹션 1: 주요 지표 카드 4개 ── */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--gw-text-secondary)' }}>
+          오늘의 주요 지표
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <RiskIndicator data={mockScores.riskScore} />
+          <OpportunityIndicator data={mockScores.opportunityScore} />
+          <RelevanceIndicator data={mockScores.relevanceScore} />
+          <TrendIndicator data={mockScores.trendIndicator} />
+        </div>
+      </section>
+
+      {/* ── 섹션 2: 지역 + 산업 차트 ── */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--gw-text-secondary)' }}>
+          시장 분석
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RegionChart data={regionData} />
+          <IndustryChart data={industryData} />
+        </div>
+      </section>
+
+      {/* ── 섹션 3: 7일 추이 차트 ── */}
+      <section className="mb-6">
+        <RiskTrendChart data={riskTrendData} />
+      </section>
+
+      {/* ── 섹션 4: 최근 뉴스 ── */}
+      <section>
+        <NewsCard items={filteredNews} limit={tier === 'tier1' ? 3 : 5} />
+      </section>
     </MainLayout>
   );
 }
