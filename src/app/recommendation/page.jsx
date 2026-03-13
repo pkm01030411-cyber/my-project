@@ -1,119 +1,209 @@
-import MainLayout from '@/components/Layout/MainLayout';
+'use client';
 
-export const metadata = {
-  title: '정책 제안 | GlobalWatch',
+import { useState, useMemo } from 'react';
+import MainLayout from '@/components/Layout/MainLayout';
+import useDarkMode from '@/hooks/useDarkMode';
+import { recommendations } from '@/data/mockData';
+import { CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+
+const PRIORITY_CONFIG = {
+  critical: { label: '즉시 대응', bg: 'rgba(220,38,38,0.08)', text: '#dc2626', border: 'rgba(220,38,38,0.3)' },
+  high:     { label: '긴급',      bg: 'rgba(245,158,11,0.08)', text: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+  medium:   { label: '중요',      bg: 'rgba(99,102,241,0.08)', text: '#6366f1', border: 'rgba(99,102,241,0.3)' },
+  low:      { label: '권장',      bg: 'rgba(16,185,129,0.08)', text: '#10b981', border: 'rgba(16,185,129,0.3)' },
 };
 
-export default function RecommendationPage() {
+function RecommendationCard({ rec }) {
+  const [expanded, setExpanded] = useState(rec.priority === 'critical');
+  const [checked, setChecked] = useState([]);
+  const cfg = PRIORITY_CONFIG[rec.priority] ?? PRIORITY_CONFIG.low;
+
+  const toggleCheck = (i) =>
+    setChecked((prev) => prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]);
+
+  const progress = rec.actions.length > 0
+    ? Math.round((checked.length / rec.actions.length) * 100)
+    : 0;
+
   return (
-    <MainLayout>
-      <div>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
-            정책 제안
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--gw-text-secondary)' }}>
-            AI가 분석한 맞춤형 무역 전략 및 정책 제안
-          </p>
-        </div>
-
-        {/* 제안 카드 */}
-        <div className="space-y-4">
-          {[
-            {
-              priority: 'high',
-              priorityLabel: '긴급',
-              icon: '🚨',
-              title: '인도 반덤핑 조사 대응 전략',
-              description: '인도의 한국산 철강 반덤핑 조사에 대한 즉각적인 법적 대응 및 수출 다변화 방안을 수립하세요.',
-              actions: ['변호인단 구성 및 조사 대응팀 운영', '베트남, 인도네시아 대체 수출 루트 확보', '가격 경쟁력 분석 및 원가 구조 재검토'],
-              deadline: '2024.05.15 까지',
-            },
-            {
-              priority: 'medium',
-              priorityLabel: '중요',
-              icon: '💡',
-              title: 'CBAM 대응을 위한 탄소 저감 전략',
-              description: 'EU 탄소국경조정제도 시행에 대비하여 생산 공정의 탄소 배출량 감축 계획을 수립하세요.',
-              actions: ['제품별 탄소 발자국 측정 및 인증 취득', '재생에너지 전환 투자 계획 수립', 'EU 파트너사와 협력 확대'],
-              deadline: '2024.06.30 까지',
-            },
-            {
-              priority: 'low',
-              priorityLabel: '권장',
-              icon: '🌱',
-              title: '아세안 신규 시장 진출 기회 포착',
-              description: 'RCEP 발효 이후 관세 혜택을 활용하여 베트남, 인도네시아 시장 진출을 검토하세요.',
-              actions: ['현지 유통 파트너 발굴 및 MOU 체결', '현지 소비자 트렌드 분석 리서치', 'KOTRA 해외 무역관 협력 활용'],
-              deadline: '2024.08.31 까지',
-            },
-          ].map((rec, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-xl border transition-theme"
-              style={{
-                backgroundColor: 'var(--gw-surface)',
-                borderColor: 'var(--gw-border)',
-              }}
-            >
-              <div className="flex items-start gap-3 mb-4">
-                <span className="text-2xl">{rec.icon}</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                      style={{
-                        backgroundColor:
-                          rec.priority === 'high'
-                            ? '#fef2f2'
-                            : rec.priority === 'medium'
-                              ? '#fffbeb'
-                              : '#f0fdf4',
-                        color:
-                          rec.priority === 'high'
-                            ? 'var(--gw-danger)'
-                            : rec.priority === 'medium'
-                              ? 'var(--gw-accent)'
-                              : 'var(--gw-secondary)',
-                      }}
-                    >
-                      {rec.priorityLabel}
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--gw-text-secondary)' }}>
-                      {rec.deadline}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
-                    {rec.title}
-                  </h3>
-                  <p className="text-sm" style={{ color: 'var(--gw-text-secondary)' }}>
-                    {rec.description}
-                  </p>
+    <div
+      className="rounded-2xl border overflow-hidden transition-theme"
+      style={{ backgroundColor: 'var(--gw-surface)', borderColor: 'var(--gw-border)' }}
+    >
+      {/* 좌측 컬러 바 */}
+      <div className="flex">
+        <div className="w-1 flex-shrink-0" style={{ backgroundColor: cfg.text }} />
+        <div className="flex-1 p-5">
+          {/* 헤더 */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0">{rec.icon}</span>
+              <div>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full border"
+                    style={{ color: cfg.text, backgroundColor: cfg.bg, borderColor: cfg.border }}
+                  >
+                    {cfg.label}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--gw-text-secondary)' }}>
+                    {rec.flag} {rec.region} · 기한: {rec.deadline}
+                  </span>
                 </div>
+                <h3 className="text-base font-semibold" style={{ color: 'var(--gw-text-primary)' }}>
+                  {rec.title}
+                </h3>
               </div>
+            </div>
 
-              {/* 액션 아이템 */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex-shrink-0 p-1 rounded-lg transition-opacity hover:opacity-70"
+            >
+              {expanded
+                ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--gw-text-secondary)' }} />
+                : <ChevronDown className="w-5 h-5" style={{ color: 'var(--gw-text-secondary)' }} />}
+            </button>
+          </div>
+
+          {/* 진행도 바 */}
+          {checked.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs" style={{ color: 'var(--gw-text-secondary)' }}>
+                  진행도
+                </span>
+                <span className="text-xs font-semibold" style={{ color: cfg.text }}>
+                  {progress}%
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--gw-border)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%`, backgroundColor: cfg.text }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 펼쳐진 내용 */}
+          {expanded && (
+            <div className="mt-4">
+              <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--gw-text-secondary)' }}>
+                {rec.description ?? rec.summary}
+              </p>
+
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--gw-text-primary)' }}>
+                실행 계획
+              </p>
               <ul className="space-y-2">
-                {rec.actions.map((action, j) => (
-                  <li key={j} className="flex items-start gap-2">
-                    <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-                      style={{
-                        backgroundColor: 'var(--gw-sidebar-active)',
-                        color: 'var(--gw-primary)',
-                      }}
+                {rec.actions.map((action, i) => {
+                  const done = checked.includes(i);
+                  return (
+                    <li
+                      key={i}
+                      onClick={() => toggleCheck(i)}
+                      className="flex items-start gap-2.5 cursor-pointer group"
                     >
-                      {j + 1}
-                    </span>
-                    <span className="text-sm" style={{ color: 'var(--gw-text-primary)' }}>
-                      {action}
-                    </span>
-                  </li>
-                ))}
+                      {done
+                        ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#10b981' }} />
+                        : <Circle className="w-5 h-5 flex-shrink-0 mt-0.5 group-hover:opacity-70" style={{ color: 'var(--gw-border)' }} />
+                      }
+                      <span
+                        className="text-sm transition-all"
+                        style={{
+                          color: done ? '#10b981' : 'var(--gw-text-primary)',
+                          textDecoration: done ? 'line-through' : 'none',
+                          opacity: done ? 0.7 : 1,
+                        }}
+                      >
+                        {action}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
-          ))}
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+export default function RecommendationPage() {
+  useDarkMode();
+
+  const [priorityFilter, setPriorityFilter] = useState('all');
+
+  const filtered = useMemo(() => {
+    if (priorityFilter === 'all') return recommendations;
+    return recommendations.filter((r) => r.priority === priorityFilter);
+  }, [priorityFilter]);
+
+  const criticalCount = recommendations.filter((r) => r.priority === 'critical').length;
+  const highCount     = recommendations.filter((r) => r.priority === 'high').length;
+
+  return (
+    <MainLayout>
+      {/* 헤더 */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--gw-text-primary)' }}>
+          정책 제안
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--gw-text-secondary)' }}>
+          AI가 분석한 맞춤형 무역 전략 및 실행 계획
+        </p>
+
+        {/* 요약 배너 */}
+        {(criticalCount > 0 || highCount > 0) && (
+          <div
+            className="mt-4 flex items-center gap-3 p-3 rounded-xl border"
+            style={{ backgroundColor: 'rgba(220,38,38,0.06)', borderColor: 'rgba(220,38,38,0.2)' }}
+          >
+            <span className="text-lg">🚨</span>
+            <p className="text-sm" style={{ color: 'var(--gw-text-primary)' }}>
+              <strong style={{ color: '#dc2626' }}>즉시 대응 {criticalCount}건</strong>,{' '}
+              <strong style={{ color: '#f59e0b' }}>긴급 {highCount}건</strong>이 있습니다.
+              빠른 검토가 필요합니다.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 필터 */}
+      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5">
+        {[
+          { code: 'all',      label: `전체 (${recommendations.length})` },
+          { code: 'critical', label: '즉시 대응' },
+          { code: 'high',     label: '긴급' },
+          { code: 'medium',   label: '중요' },
+          { code: 'low',      label: '권장' },
+        ].map((f) => {
+          const cfg = PRIORITY_CONFIG[f.code] ?? { text: 'var(--gw-primary)', bg: 'var(--gw-sidebar-active)' };
+          const active = priorityFilter === f.code;
+          return (
+            <button
+              key={f.code}
+              onClick={() => setPriorityFilter(f.code)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all"
+              style={{
+                backgroundColor: active ? (f.code === 'all' ? 'var(--gw-primary)' : cfg.bg) : 'var(--gw-surface)',
+                color: active ? (f.code === 'all' ? '#fff' : cfg.text) : 'var(--gw-text-secondary)',
+                border: `1px solid ${active ? (f.code === 'all' ? 'var(--gw-primary)' : cfg.border ?? cfg.text) : 'var(--gw-border)'}`,
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 제안 카드 목록 */}
+      <div className="space-y-4">
+        {filtered.map((rec) => (
+          <RecommendationCard key={rec.id} rec={rec} />
+        ))}
       </div>
     </MainLayout>
   );
